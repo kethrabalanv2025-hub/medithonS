@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Campus Resource Conflict Resolver</title>
+  
+  <!-- Modern Typography: Plus Jakarta Sans for clean headings, Inter for readable UI text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FullCalendar.js CDN - Open-source calendar library for interactive week and list views -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ======================================================= -->
+  <!-- 1. APP HEADER & STATS OVERVIEW                          -->
+  <!-- ======================================================= -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <!-- Campus Icon -->
+        <div class="brand-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18"/>
+            <path d="M5 21V7l7-4 7 4v14"/>
+            <path d="M9 10h1"/>
+            <path d="M9 14h1"/>
+            <path d="M9 18h1"/>
+            <path d="M14 10h1"/>
+            <path d="M14 14h1"/>
+            <path d="M14 18h1"/>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <div class="title-row">
+            <h1>Smart Campus Resource Conflict Resolver</h1>
+            <span class="badge badge-hackathon">Hackathon 2026</span>
+          </div>
+          <p class="subtitle">Automated schedule conflict detection and alternative slot recommendations</p>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Overview -->
+      <div class="header-stats">
+        <div class="stat-pill">
+          <span class="stat-label">Total Bookings</span>
+          <span class="stat-value" id="statTotalBookings">0</span>
+        </div>
+        <div class="stat-pill stat-pill-danger">
+          <span class="stat-label">Conflicts</span>
+          <span class="stat-value" id="statConflicts">0</span>
+        </div>
+        <div class="stat-pill stat-pill-success">
+          <span class="stat-label">Confirmed</span>
+          <span class="stat-value" id="statClearBookings">0</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================= -->
+  <!-- 2. MAIN APP CONTENT (TWO SECTIONS ON ONE PAGE)         -->
+  <!-- ======================================================= -->
+  <main class="main-layout">
+    
+    <!-- --------------------------------------------------- -->
+    <!-- SECTION 1: BOOKING REQUEST FORM                     -->
+    <!-- --------------------------------------------------- -->
+    <section class="form-section">
+      <div class="card form-card">
+        
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div>
+              <h2>Booking Request Form</h2>
+              <p class="card-subtitle">Reserve campus facilities and check for time overlaps</p>
+            </div>
+          </div>
+          <span class="status-indicator live">Live Check</span>
+        </div>
+
+        <!-- In-Page Notification Banner Area (Shows clash details or success) -->
+        <div id="notificationBox" class="notification-area" aria-live="polite"></div>
+
+        <!-- Quick Demo Autofill Buttons (For easy judging demos) -->
+        <div class="demo-helpers">
+          <span class="demo-helpers-label">Demo Presets:</span>
+          <button type="button" class="btn-chip btn-chip-conflict" id="demoConflictBtn" title="Loads a reservation that intentionally clashes with an existing booking">
+            ⚡ Demo Conflict Clash
+          </button>
+          <button type="button" class="btn-chip btn-chip-available" id="demoAvailableBtn" title="Loads a reservation with an open, non-conflicting time slot">
+            ✨ Demo Free Slot
+          </button>
+        </div>
+
+        <!-- Form fields with EXACT IDs requested by backend API team -->
+        <form id="bookingForm" novalidate>
+
+          <!-- 1. Resource Dropdown: id="resource" -->
+          <div class="form-group">
+            <label for="resource">
+              Campus Resource <span class="required">*</span>
+            </label>
+            <div class="select-wrapper">
+              <select id="resource" name="resource" required>
+                <option value="" disabled selected>-- Select a campus facility --</option>
+                <option value="Seminar Hall 1">Seminar Hall 1 (Capacity: 120)</option>
+                <option value="Seminar Hall 2">Seminar Hall 2 (Capacity: 150)</option>
+                <option value="MG Auditorium">MG Auditorium (Capacity: 600)</option>
+                <option value="Lab 204">Lab 204 (CS Dept - 60 PCs)</option>
+                <option value="Lab 205">Lab 205 (AI & IoT Lab - 45 PCs)</option>
+              </select>
+            </div>
+            <span class="field-hint">Select the hall or lab needed.</span>
+          </div>
+
+          <!-- 2. Department / Club Name: id="dept" -->
+          <div class="form-group">
+            <label for="dept">
+              Department / Club <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="dept" 
+              name="dept" 
+              placeholder="e.g. IEEE Student Branch, Robotics Club, CS Dept" 
+              required
+            >
+            <span class="field-hint">Department or student club requesting the space.</span>
+          </div>
+
+          <!-- 3. Purpose of Booking: id="purpose" -->
+          <div class="form-group">
+            <label for="purpose">
+              Purpose of Booking <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="purpose" 
+              name="purpose" 
+              placeholder="e.g. Annual Tech Symposium, Guest Lecture, Workshop" 
+              required
+            >
+            <span class="field-hint">Brief event description or objective.</span>
+          </div>
+
+          <!-- 4. Date Picker: id="date" -->
+          <div class="form-group">
+            <label for="date">
+              Booking Date <span class="required">*</span>
+            </label>
+            <input 
+              type="date" 
+              id="date" 
+              name="date" 
+              required
+            >
+            <span class="field-hint">Date when the resource is required.</span>
+          </div>
+
+          <!-- 5. Time Pickers: id="startTime" and id="endTime" -->
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="startTime">
+                Start Time <span class="required">*</span>
+              </label>
+              <input 
+                type="time" 
+                id="startTime" 
+                name="startTime" 
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="endTime">
+                End Time <span class="required">*</span>
+              </label>
+              <input 
+                type="time" 
+                id="endTime" 
+                name="endTime" 
+                required
+              >
+            </div>
+          </div>
+
+          <!-- Form Buttons -->
+          <div class="form-actions">
+            <button type="submit" id="submitBtn" class="btn btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              <span>Submit Booking Request</span>
+            </button>
+            <button type="button" id="resetBtn" class="btn btn-secondary" title="Clear form fields">
+              Clear
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+
+      <!-- Quick Concept Card for Hackathon Judges -->
+      <div class="card info-card">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          Conflict Check Algorithm
+        </h3>
+        <p>A conflict occurs when two bookings on the <strong>same resource and date</strong> overlap in time:</p>
+        <div class="code-pill">
+          <code>(startA &lt; endB) &amp;&amp; (endA &gt; startB)</code>
+        </div>
+        <p class="text-muted">When a clash is flagged, the system identifies the clashing booking and suggests available alternative halls.</p>
+      </div>
+    </section>
+
+    <!-- --------------------------------------------------- -->
+    <!-- SECTION 2: DASHBOARD / CALENDAR VIEW                -->
+    <!-- --------------------------------------------------- -->
+    <section class="dashboard-section">
+      
+      <!-- Calendar Card -->
+      <div class="card calendar-card">
+        <div class="card-header calendar-header">
+          <div class="calendar-title-area">
+            <h2>Campus Booking Calendar</h2>
+            <p class="card-subtitle">Visual weekly and daily schedule of all campus facilities</p>
+          </div>
+
+          <!-- Calendar Controls & Legend -->
+          <div class="calendar-controls">
+            <!-- Filter by Resource -->
+            <div class="filter-group">
+              <select id="resourceFilter" class="control-select">
+                <option value="ALL">All Resources</option>
+                <option value="Seminar Hall 1">Seminar Hall 1</option>
+                <option value="Seminar Hall 2">Seminar Hall 2</option>
+                <option value="MG Auditorium">MG Auditorium</option>
+                <option value="Lab 204">Lab 204</option>
+                <option value="Lab 205">Lab 205</option>
+              </select>
+            </div>
+
+            <!-- Visual Legend -->
+            <div class="legend-group">
+              <span class="legend-item">
+                <span class="legend-dot dot-green"></span> Confirmed (Clear)
+              </span>
+              <span class="legend-item">
+                <span class="legend-dot dot-red"></span> Time Conflict (Red)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FullCalendar Display Container -->
+        <div id="calendar" class="fullcalendar-wrapper"></div>
+      </div>
+
+      <!-- Schedule Table Card: List of all bookings -->
+      <div class="card table-card">
+        <div class="card-header">
+          <div>
+            <h3>All Current Campus Reservations</h3>
+            <p class="card-subtitle">List view of mock reservations, times, and status</p>
+          </div>
+          <span class="booking-count-badge" id="tableRecordCount">0 Records</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="schedule-table" id="bookingsTable">
+            <thead>
+              <tr>
+                <th>Resource</th>
+                <th>Department / Club</th>
+                <th>Date</th>
+                <th>Time Window</th>
+                <th>Purpose</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookingsTableBody">
+              <!-- Dynamically rendered by script.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ======================================================= -->
+  <!-- 3. BOOKING DETAILS MODAL DIALOG                         -->
+  <!-- ======================================================= -->
+  <div id="detailModal" class="modal-backdrop" hidden>
+    <div class="modal-dialog" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modalTitle">Booking Details</h3>
+        <button type="button" class="modal-close" id="modalCloseBtn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modalDismissBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript File -->
+  <script src="script.js"></script>
+</body>
+</html>
